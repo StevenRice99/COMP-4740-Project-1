@@ -5,6 +5,7 @@ import time
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -162,19 +163,29 @@ def test(model, batch: int, dataloader):
     :param model: The neural network.
     :param batch: The batch size.
     :param dataloader: The dataloader to test.
-    :return: The model's accuracy.
+    :return: The model's accuracy and overall precision.
     """
     # Switch to evaluation mode.
     model.eval()
-    # Count how many are correct.
+    # Count how many are correct and total predictions.
     correct = 0
+    y_true, y_pred = [], []
     # Loop through all data.
     for raw_image, raw_label in dataloader:
         image, label = to_tensor(raw_image), to_tensor(raw_label)
         # If properly predicted, count it as correct.
-        correct += (label == model.predict(image)).sum().item()
+        prediction = model.predict(image)
+        correct += (label == prediction).sum().item()
+        y_true.extend(label.tolist())
+        y_pred.extend(prediction.tolist())
     # Calculate the overall accuracy.
-    return correct / (len(dataloader) * batch) * 100.0
+    accuracy = correct / (len(dataloader) * batch) * 100.0
+    # Get precision using confusion matrix
+    confusion_mat = confusion_matrix(y_true, y_pred)
+    # So it doesn't divide by 0
+    precision = confusion_mat.diagonal() / (confusion_mat.sum(axis=0) + 1e-9)
+    overall_precision = precision.mean() * 100.0
+    return accuracy, overall_precision
 
 
 def save(name: str, model, best_model, epoch: int, no_change: int, best_accuracy: float, loss: float):
@@ -300,9 +311,9 @@ def main(layers: int, width: int, batch: bool, dropout: bool, augment: bool, epo
         except:
             print("Model to load has different structure than 'model_builder'.py, cannot load.")
             return
-        train_accuracy = test(model, 64, training)
+        train_accuracy, train_percision = test(model, 64, training)
         start = time.time_ns()
-        accuracy = test(model, 64, testing)
+        accuracy, percision = test(model, 64, testing)
         end = time.time_ns()
         inference_time = ((end - start) / testing_total) / 1e+6
         print(f"Testing Accuracy = {accuracy}%\n"
@@ -338,7 +349,7 @@ def main(layers: int, width: int, batch: bool, dropout: bool, augment: bool, epo
     if not os.path.exists(f"{os.getcwd()}/Models/{name}"):
         os.mkdir(f"{os.getcwd()}/Models/{name}")
     start = time.time_ns()
-    accuracy = test(model, 64, testing)
+    accuracy, percision = test(model, 64, testing)
     end = time.time_ns()
     inference_time = ((end - start) / testing_total) / 1e+6
     # If new training, write initial files.
@@ -347,7 +358,7 @@ def main(layers: int, width: int, batch: bool, dropout: bool, augment: bool, epo
         f = open(f"{os.getcwd()}/Models/{name}/Training.csv", "w")
         f.write("Epoch,Loss,Training,Testing")
         f.close()
-    train_accuracy = test(model, 64, training)
+    train_accuracy, train_percision = test(model, 64, training)
     trainable_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Network parameters: {trainable_parameters}")
     write_parameters(name, best_accuracy, train_accuracy, inference_time, trainable_parameters, 0)
@@ -370,9 +381,9 @@ def main(layers: int, width: int, batch: bool, dropout: bool, augment: bool, epo
         loss /= training_total
         # Check how well the newest epoch performs.
         start = time.time_ns()
-        accuracy = test(model, 64, testing)
+        accuracy, percision = test(model, 64, testing)
         end = time.time_ns()
-        train_accuracy = test(model, 64, training)
+        train_accuracy, train_percision = test(model, 64, training)
         # Check if this is the new best model.
         if accuracy > best_accuracy:
             best_model = model.state_dict()
