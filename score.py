@@ -6,12 +6,13 @@ import pandas as pd
 from main import get_name
 
 
-def calculate(augment: bool, batch: bool, dropout: bool):
+def calculate(augment: bool, batch: bool, dropout: bool, s: str):
     """
     Calculate the scores of a network configuration.
     :param augment: Augment the training data.
     :param batch: Apply batch normalization to hidden layers.
     :param dropout: Apply dropout to hidden layers.
+    :param s: If this is checking for accuracy or precision.
     """
     results = {"Training": [], "Testing": []}
     root = f"{os.getcwd()}/Models"
@@ -31,8 +32,8 @@ def calculate(augment: bool, batch: bool, dropout: bool):
             continue
         # Read the results.
         df = pd.read_csv(path)
-        results["Training"].append(df["Training"].max())
-        results["Testing"].append(df["Testing"].max())
+        results["Training"].append(df[f"Training {s}"].max())
+        results["Testing"].append(df[f"Testing {s}"].max())
     # Update the name to be shorter.
     name = name.replace("Network Augmented", "A")
     name = name.replace("Network", "N")
@@ -53,60 +54,61 @@ def score():
     Calculate the scores of all network configuration.
     """
     # Get all results.
-    results = []
-    result = calculate(False, False, False)
-    if result is not None:
-        results.append(result)
-    result = calculate(False, False, True)
-    if result is not None:
-        results.append(result)
-    result = calculate(False, True, False)
-    if result is not None:
-        results.append(result)
-    result = calculate(False, True, True)
-    if result is not None:
-        results.append(result)
-    result = calculate(True, False, False)
-    if result is not None:
-        results.append(result)
-    result = calculate(True, False, True)
-    if result is not None:
-        results.append(result)
-    result = calculate(True, True, False)
-    if result is not None:
-        results.append(result)
-    result = calculate(True, True, True)
-    if result is not None:
-        results.append(result)
-    # Nothing to do if no results.
-    if len(results) == 0:
-        return
-    # Write data to the file.
-    f = open(f"{os.getcwd()}/Results.csv", "w")
-    for i in range(len(results)):
-        if i > 0:
-            f.write(",")
-        f.write(f",{results[i]['Name']}")
-    f.write("\n")
-    for _ in results:
-        f.write(",Training,Testing")
-    f.write("\n")
-    f.write("Min")
-    for result in results:
-        f.write(f",{result['Min']['Training']},{result['Min']['Testing']}")
-    f.write("\n")
-    f.write("Max")
-    for result in results:
-        f.write(f",{result['Max']['Training']},{result['Max']['Testing']}")
-    f.write("\n")
-    f.write("Average")
-    for result in results:
-        f.write(f",{result['Avg']['Training']},{result['Avg']['Testing']}")
-    f.write("\n")
-    f.write("STD")
-    for result in results:
-        f.write(f",{result['Std']['Training']},{result['Std']['Testing']}")
-    f.close()
+    for i in range(2):
+        s = "Accuracy" if i == 0 else "Precision"
+        results = []
+        result = calculate(False, False, False, s)
+        if result is not None:
+            results.append(result)
+        result = calculate(False, False, True, s)
+        if result is not None:
+            results.append(result)
+        result = calculate(False, True, False, s)
+        if result is not None:
+            results.append(result)
+        result = calculate(False, True, True, s)
+        if result is not None:
+            results.append(result)
+        result = calculate(True, False, False, s)
+        if result is not None:
+            results.append(result)
+        result = calculate(True, False, True, s)
+        if result is not None:
+            results.append(result)
+        result = calculate(True, True, False, s)
+        if result is not None:
+            results.append(result)
+        result = calculate(True, True, True, s)
+        if result is not None:
+            results.append(result)
+        # Nothing to do if no results.
+        if len(results) == 0:
+            return
+        # Write data to the file.
+        f = open(f"{os.getcwd()}/{s}.csv", "w")
+        f.write("Model")
+        for result in results:
+            f.write(f",{result['Name']},{result['Name']}")
+        f.write("\nMetric")
+        for _ in results:
+            f.write(",Training,Testing")
+        f.write("\n")
+        f.write("Min")
+        for result in results:
+            f.write(f",{result['Min']['Training']},{result['Min']['Testing']}")
+        f.write("\n")
+        f.write("Max")
+        for result in results:
+            f.write(f",{result['Max']['Training']},{result['Max']['Testing']}")
+        f.write("\n")
+        f.write("Average")
+        for result in results:
+            f.write(f",{result['Avg']['Training']},{result['Avg']['Testing']}")
+        f.write("\n")
+        f.write("STD")
+        for result in results:
+            f.write(f",{result['Std']['Training']},{result['Std']['Testing']}")
+        f.close()
 
 
 if __name__ == '__main__':

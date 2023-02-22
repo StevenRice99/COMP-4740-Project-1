@@ -38,12 +38,11 @@ This is a solution for [Wall-Following Robot Navigation Data Set](https://archiv
    7. -t, --test - Test the model without doing any training. Pass for true, otherwise false.
 2. Once done, a folder with the given model can be found in the "Models" folder which contains the following:
    1. "Model.pt" which contains the best weights and bias saved which can be loaded for inference as well as to continue training later.
-   2. "Details.txt" which contains an overview of the model. 
-   3. "Training.csv" which contains the loss and accuracy for each training epoch.
+   2. "Training.csv" which contains the loss and accuracy for each training epoch.
 
 ## Score
 
-1. Run "score.py" which will generate "Results.csv" which contains the minimum, maximum, average, and standard deviations of the training.
+1. Run "score.py" which will generate "Accuracy.csv" and "Precision.csv" which contains the minimum, maximum, average, and standard deviations of the accuracies and precisions.
 
 ## Looper
 
